@@ -1,0 +1,96 @@
+with "gnatcoll";
+with "gnatcoll_sql";
+
+project GnatColl_Oracle is
+
+   Version := External ("GNATCOLL_VERSION", "0.0");
+   Name    := "gnatcoll_oracle";
+
+   type Build_Type is ("DEBUG", "PROD");
+   Build : Build_Type := External ("BUILD", "PROD");
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type := External ("LIBRARY_TYPE", "static");
+
+   for Library_Kind    use Library_Type;
+   for Source_Dirs     use (".");
+   for Object_Dir      use "obj/" & Project'Library_Kind;
+   for Library_Dir     use "lib/" & Project'Library_Kind;
+   for Library_Name    use Name;
+   for Library_Version use "lib" & Name & Gnatcoll.So_Ext & "." & Version;
+
+   for Languages use ("Ada");
+
+   type OS_Kind is ("windows", "unix", "osx");
+   OS : OS_Kind := External ("GNATCOLL_OS", "unix");
+
+   case Library_Type is
+      when "relocatable" =>
+         case OS is
+            when "unix" | "osx" =>
+               for Library_Options use ("-lclntsh");
+            when "windows" =>
+               for Library_Options use ("-loci");
+         end case;
+
+         for Library_Interface use ("gnatcoll.sql.oracle");
+      when others =>
+         null;
+   end case;
+
+   package Compiler is
+      case Build is
+         when "DEBUG" =>
+            for Switches ("Ada") use
+              ("-g", "-O0", "-gnata", "-gnatVa", "-gnatQ", "-gnaty", "-gnateE",
+               "-gnatwaCJe", "-fstack-check");
+
+         when "PROD" =>
+            --  Do not use -gnatwe for production mode
+            for Switches ("Ada") use ("-O2", "-gnatn", "-gnatwaCJ");
+      end case;
+   end Compiler;
+
+   package Binder is
+      case Build is
+         when "DEBUG" =>
+            for Switches ("Ada") use ("-E");
+         when "PROD" =>
+            null;
+      end case;
+   end Binder;
+
+   package Builder is
+      case Build is
+         when "DEBUG" =>
+            for Global_Configuration_Pragmas use "gnat_debug.adc";
+         when "PROD" =>
+            null;
+      end case;
+   end Builder;
+
+   package Ide is
+      for VCS_Kind use "Git";
+   end Ide;
+
+   package Naming is
+      case OS is
+         when "unix" | "osx" =>
+            for Body ("GNATCOLL.SQL.Oracle.Find_Tnsnames_File")
+              use "gnatcoll-sql-oracle-find_tnsnames_file__unix.adb";
+         when "windows" =>
+            for Body ("GNATCOLL.SQL.Oracle.Find_Tnsnames_File")
+              use "gnatcoll-sql-oracle-find_tnsnames_file__win32.adb";
+      end case;
+   end Naming;
+
+   package Linker is
+      case OS is
+         when "unix" | "osx" =>
+            for Linker_Options use ("-lclntsh");
+         when "windows" =>
+            for Linker_Options use ("-loci");
+      end case;
+   end Linker;
+
+end GnatColl_Oracle;
