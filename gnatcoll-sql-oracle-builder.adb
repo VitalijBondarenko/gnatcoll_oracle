@@ -242,7 +242,7 @@ package body GNATCOLL.SQL.Oracle.Builder is
    overriding procedure Close
      (Connection : access Oracle_Connection_Record) is
    begin
-      if Connection /= null then
+      if Connection /= null and then Connection.Oracle /= null then
          Unchecked_Free (Connection.Oracle);
          Connection.Oracle := null;
       end if;

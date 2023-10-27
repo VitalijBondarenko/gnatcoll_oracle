@@ -679,21 +679,16 @@ package body GNATCOLL.SQL.Oracle.Gnade is
    begin
       OCIClientVersion
         (Major_Version, Minor_Version, Update_Num, Patch_Num, Port_Update_Num);
-      Major :=
-        Interfaces.Shift_Left (Interfaces.Unsigned_32 (Major_Version), 24) and
-        Interfaces.Unsigned_32 (16#FF000000#);
-      Minor :=
-        Interfaces.Shift_Left (Interfaces.Unsigned_32 (Minor_Version), 20) and
-        Interfaces.Unsigned_32 (16#00F00000#);
-      Update :=
-        Interfaces.Shift_Left (Interfaces.Unsigned_32 (Update_Num), 12) and
-        Interfaces.Unsigned_32 (16#000FF000#);
-      Port_Rel :=
-        Interfaces.Shift_Left (Interfaces.Unsigned_32 (Patch_Num), 8) and
-        Interfaces.Unsigned_32 (16#00000F00#);
-      Port_Upd :=
-        Interfaces.Shift_Left (Interfaces.Unsigned_32 (Port_Update_Num), 0) and
-        Interfaces.Unsigned_32 (16#000000FF#);
+      Major := Shift_Left
+        (Unsigned_32 (Major_Version), 24) and Unsigned_32 (16#FF000000#);
+      Minor := Shift_Left
+        (Unsigned_32 (Minor_Version), 20) and Unsigned_32 (16#00F00000#);
+      Update := Shift_Left
+        (Unsigned_32 (Update_Num), 12) and Unsigned_32 (16#000FF000#);
+      Port_Rel := Shift_Left
+        (Unsigned_32 (Patch_Num), 8) and Unsigned_32 (16#00000F00#);
+      Port_Upd := Shift_Left
+        (Unsigned_32 (Port_Update_Num), 0) and Unsigned_32 (16#000000FF#);
       return Integer (Major + Minor + Update + Port_Rel + Port_Upd);
    end Client_Version_Number;
 
@@ -944,7 +939,8 @@ package body GNATCOLL.SQL.Oracle.Gnade is
 
    function Column_Ada_Type (Col_Type : SQL_Type) return OCI_Ada_Data_Type;
 
-   function Execute_Internal (Stmt : OCI_Statement) return Boolean;
+   function Execute_Internal
+     (Stmt : OCI_Statement; Raise_Exception : Boolean := True) return Boolean;
 
    ----------------
    -- Is_Success --
@@ -1124,11 +1120,13 @@ package body GNATCOLL.SQL.Oracle.Gnade is
    -- Execute_Internal --
    ----------------------
 
-   function Execute_Internal (Stmt : OCI_Statement) return Boolean is
-      Not_Select      : constant Boolean :=
+   function Execute_Internal
+     (Stmt : OCI_Statement; Raise_Exception : Boolean := True) return Boolean
+   is
+      Not_Select  : constant Boolean :=
         Type_Of_Statement (Stmt) /= Stmt_Select;
-      Raise_Exception : Boolean := True;
-      Rc              : SWord;
+      Raise_Error : Boolean := Raise_Exception;
+      Rc          : SWord;
    begin
       Rc := OCIStmtExecute
         (Svchp    => Stmt.Connect.Service,
@@ -1142,17 +1140,17 @@ package body GNATCOLL.SQL.Oracle.Gnade is
 
       if Raise_Exception then
          Check_Error (Rc, True);
-         Raise_Exception := False;
+         Raise_Error := False;
       else
          if Rc = OCI_SUCCESS or else Rc = OCI_SUCCESS_WITH_INFO then
             Stmt.Executed := True;
             Stmt.Described := True;
          else
-            Raise_Exception := True;
+            Raise_Error := True;
          end if;
       end if;
 
-      return not Raise_Exception;
+      return not Raise_Error;
    end Execute_Internal;
 
    -------------
@@ -1669,7 +1667,7 @@ package body GNATCOLL.SQL.Oracle.Gnade is
             when OCI_NO_DATA           => return False;
             when OCI_SUCCESS
                | OCI_SUCCESS_WITH_INFO => return True;
-            when others                => Check_Error (Rc);
+            when others                => Check_Error (Rc, True);
          end case;
 
          --  We should not be there.
@@ -2175,7 +2173,8 @@ package body GNATCOLL.SQL.Oracle.Gnade is
             Buf_Size   => Len'Access,
             Buf        => Interfaces.C.Strings.To_Chars_Ptr
               (Buff'Unchecked_Access)));
-      return Interfaces.C.Strings.To_Chars_Ptr (Buff'Unchecked_Access, False);
+      --  return Interfaces.C.Strings.To_Chars_Ptr (Buff'Unchecked_Access, False);
+      return Interfaces.C.Strings.New_Char_Array (Buff);
    end To_C_String;
 
    --  ---------------

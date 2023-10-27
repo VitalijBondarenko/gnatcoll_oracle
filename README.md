@@ -11,7 +11,8 @@ available on your system:
 
 * gprbuild
 * gnatcoll-core
-* oracle instant client (version 10.2.0 or above)
+* gnatcoll_sql
+* [oracle instant client](https://www.oracle.com/database/technologies/instant-client/downloads.html) (version 10.2.0 or above)
 
 Configuring the build process
 -----------------------------

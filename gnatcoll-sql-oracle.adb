@@ -1,6 +1,5 @@
-with GNAT.Regpat;               use GNAT.Regpat;
-with Ada.Text_IO;               use Ada.Text_IO;
-with Ada.Unchecked_Conversion;
+with GNAT.Regpat; use GNAT.Regpat;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with GNATCOLL.SQL.Oracle.Builder;
 with GNATCOLL.SQL.Oracle.Gnade;
@@ -176,7 +175,10 @@ package body GNATCOLL.SQL.Oracle is
 
    exception
       when others =>
-         Close (F);
+         if Is_Open (F) then
+            Close (F);
+         end if;
+
          return Empty_Names_List;
    end Get_Service_Names;
 
